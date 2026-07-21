@@ -8,7 +8,7 @@ from app.core.security import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import LoginRequest, LogoutRequest, RefreshRequest, RegisterRequest, TokenResponse
-from app.schemas.user import UserOut
+from app.schemas.user import UserOut, UserSelfUpdate, UserUpdate
 from app.services import user_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -100,3 +100,17 @@ async def logout(payload: LogoutRequest, current_user: User = Depends(get_curren
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)) -> UserOut:
     return UserOut.model_validate(current_user)
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_me(
+    payload: UserSelfUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> UserOut:
+    user = await user_service.update_user(
+        db,
+        current_user.id,
+        UserUpdate(full_name=payload.full_name, phone=payload.phone, address=payload.address),
+    )
+    return UserOut.model_validate(user)

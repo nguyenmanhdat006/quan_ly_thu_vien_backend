@@ -33,6 +33,12 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(min_length=6)
 
 
+class UserSelfUpdate(BaseModel):
+    full_name: str | None = Field(default=None, min_length=1, max_length=255)
+    phone: str | None = None
+    address: str | None = None
+
+
 class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
