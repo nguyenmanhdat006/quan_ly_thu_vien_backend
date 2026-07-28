@@ -18,10 +18,6 @@ class KeycloakError(Exception):
 
 
 class KeycloakClient:
-    """Bọc mọi tương tác với Keycloak: lấy/refresh token service account (cache
-    trong memory), login/refresh/logout người dùng, và Admin REST API tạo/sửa/xóa
-    user, gán role, đặt lại mật khẩu, bật/tắt tài khoản."""
-
     def __init__(self) -> None:
         self._base_url = settings.KEYCLOAK_URL.rstrip("/")
         self._realm = settings.KEYCLOAK_REALM
@@ -172,23 +168,19 @@ class KeycloakClient:
         return keycloak_user_id
 
     async def assign_realm_role(self, keycloak_user_id: uuid.UUID, role: str) -> None:
-        """Gán realm role cho user bằng role ID cố định."""
-        # Role ID mapping từ realm library
-        role_ids = {
-            "admin": "c1b06faa-6f54-4873-9b3a-398d455afc2b",
-            "librarian": "48479d5e-550d-4b85-93c3-589d00666641",
-            "reader": "d253c69c-a567-4af1-816c-499f0c4f74b0",
-        }
-        
-        if role not in role_ids:
-            raise KeycloakError(400, f"Role '{role}' không được hỗ trợ")
-        
+        """Gán realm role cho user. Role ID lấy từ env (settings.keycloak_role_ids),
+        không hardcode — UUID role phụ thuộc vào từng lần import realm nên phải cấu hình theo môi trường."""
+        role_ids = settings.keycloak_role_ids
+        role_id = role_ids.get(role)
+        if not role_id:
+            raise KeycloakError(400, f"Role '{role}' không được hỗ trợ hoặc chưa cấu hình KEYCLOAK_ROLE_ID_* trong env")
+
         token = await self._get_admin_token()
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(
                 f"{self._admin_users_endpoint}/{keycloak_user_id}/role-mappings/realm",
                 headers={"Authorization": f"Bearer {token}"},
-                json=[{"id": role_ids[role], "name": role}],
+                json=[{"id": role_id, "name": role}],
             )
         if resp.status_code not in (204, 201, 200):
             raise KeycloakError(502, f"Gán vai trò '{role}' trên Keycloak thất bại: {resp.text}")

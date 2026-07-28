@@ -17,11 +17,23 @@ class Settings(BaseSettings):
     FINE_PER_DAY: int = 5000
     DEFAULT_BORROW_DAYS: int = 14
 
+    KEYCLOAK_ROLE_ID_ADMIN: str = ""
+    KEYCLOAK_ROLE_ID_LIBRARIAN: str = ""
+    KEYCLOAK_ROLE_ID_READER: str = ""
+
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def keycloak_role_ids(self) -> dict[str, str]:
+        return {
+            "admin": self.KEYCLOAK_ROLE_ID_ADMIN,
+            "librarian": self.KEYCLOAK_ROLE_ID_LIBRARIAN,
+            "reader": self.KEYCLOAK_ROLE_ID_READER,
+        }
 
     @property
     def keycloak_issuer_candidates(self) -> list[str]:
